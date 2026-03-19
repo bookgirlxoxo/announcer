@@ -267,12 +267,25 @@ function Core:exists(name)
     return key ~= "" and self.schedules[key] ~= nil
 end
 
+function Core:run_entry(name)
+    local key = normalize_name(name)
+    if key == "" then
+        return false, "Name cannot be empty."
+    end
+    local e = self.schedules[key]
+    if type(e) ~= "table" then
+        return false, "Announcement not found: " .. key
+    end
+    return self:broadcast(e.msg)
+end
+
 function Core:describe_api()
     return table.concat({
         "announcer API:",
         "- announcer.broadcast(msg)",
         "- announcer.add(name, msg, time_seconds, repeat_enabled[, actor])",
         "- announcer.edit(name, msg[, time_seconds][, repeat_enabled][, has_time][, has_repeat][, actor])",
+        "- announcer.run(name)",
         "- announcer.remove(name)",
         "- announcer.list()",
         "- announcer.get(name)",
@@ -306,6 +319,10 @@ function Core:register_api()
 
     function API.remove(name)
         return self_ref:remove_entry(name)
+    end
+
+    function API.run(name)
+        return self_ref:run_entry(name)
     end
 
     function API.list()

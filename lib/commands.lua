@@ -83,6 +83,7 @@ local function send_usage()
         "/announce <msg>",
         "/announce add <name> <msg> [time] [repeat]",
         "/announce edit <name> <msg> [time] [repeat]",
+        "/announce run <name>",
         "/announce remove <name>",
         "/announce delete <name>",
         "/announce list",
@@ -175,6 +176,20 @@ function Commands.install(core)
             return true, "Removed announcement '" .. core:normalize_name(rest) .. "'."
         end
 
+        if sub == "run" then
+            if not has_priv(name, PRIV_ANNOUNCE) then
+                return false, "Missing privilege: " .. PRIV_ANNOUNCE
+            end
+            if rest == "" then
+                return false, "Usage: /announce run <name>"
+            end
+            local ok, run_err = core:run_entry(rest)
+            if not ok then
+                return false, run_err
+            end
+            return true, "Ran announcement '" .. core:normalize_name(rest) .. "'."
+        end
+
         if sub == "list" then
             if not has_priv(name, PRIV_ADD) then
                 return false, "Missing privilege: " .. PRIV_ADD
@@ -213,7 +228,7 @@ function Commands.install(core)
     end
 
     minetest.register_chatcommand("announce", {
-        params = "<msg> | add <name> <msg> [time] [repeat] | edit <name> <msg> [time] [repeat] | remove <name> | delete <name> | list",
+        params = "<msg> | add <name> <msg> [time] [repeat] | edit <name> <msg> [time] [repeat] | run <name> | remove <name> | delete <name> | list",
         description = "Send or manage server announcements.",
         privs = {},
         func = announce_command,

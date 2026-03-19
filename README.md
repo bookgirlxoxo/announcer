@@ -7,6 +7,7 @@ Server-wide announcements with manual and scheduled modes.
 - `/announce <msg>`
 - `/announce add <name> <msg> [time] [repeat]`
 - `/announce edit <name> <msg> [time] [repeat]`
+- `/announce run <name>`
 - `/announce remove <name>`
 - `/announce delete <name>`
 - `/announce list`
@@ -18,6 +19,7 @@ Notes:
 - `repeat` supports `true/false`, `1/0`, `yes/no`, `on/off`.
 - If `add` omits time/repeat, it creates a one-time immediate announcement.
 - `edit` updates message and optionally time/repeat; omitted time/repeat keep existing values.
+- `run` sends a saved announcement immediately.
 
 Examples:
 
@@ -28,7 +30,7 @@ Examples:
 
 ## Privileges
 
-- `announce.announce`: manual `/announce <msg>`
+- `announce.announce`: manual `/announce <msg>` and `/announce run <name>`
 - `announce.add`: `/announce add`, `/announce edit`, `/announce list`
 - `announce.remove`: `/announce remove|delete`
 
@@ -47,6 +49,7 @@ Global table: `announcer`
 - `announcer.broadcast(msg)`
 - `announcer.add(name, msg, time_seconds, repeat_enabled[, actor])`
 - `announcer.edit(name, msg, time_seconds, repeat_enabled[, has_time][, has_repeat][, actor])`
+- `announcer.run(name)`
 - `announcer.remove(name)`
 - `announcer.list()`
 - `announcer.get(name)`
