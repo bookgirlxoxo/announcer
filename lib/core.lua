@@ -4,7 +4,6 @@ Core.__index = Core
 local STORAGE_KEY = "schedules"
 local CONFIG_PATH = "data/config.json"
 local DEFAULT_PREFIX = "&#ffd15c[Announcement] "
-local SQL_FILENAME = "announcer.sqlite3"
 
 local function trim(s)
     return tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -44,11 +43,9 @@ function Core.new(opts)
     self.accumulator = 0
     self.config = self:load_config()
     self.prefix = self:build_prefix(self.config.prefix)
-    self.sql = self:open_sql_backend()
 
     self:load_schedules()
     self:register_api()
-    self:register_shutdown()
     return self
 end
 
@@ -116,15 +113,6 @@ function Core:build_prefix(raw_prefix)
 end
 
 function Core:save_schedules()
-    if self.sql and self.sql.db and type(self.sql.db.set_root) == "function" then
-        local ok, err = pcall(function()
-            self.sql.db:set_root("schedules", self.schedules)
-        end)
-        if ok then
-            return
-        end
-        minetest.log("warning", "[announcer] sql save failed, using mod storage fallback: " .. tostring(err))
-    end
     self.storage:set_string(STORAGE_KEY, minetest.write_json(self.schedules))
 end
 
@@ -162,25 +150,14 @@ function Core:load_schedules()
         return out
     end
 
-    local parsed = nil
-    local migrated_from_storage = false
-
-    if self.sql and self.sql.db and type(self.sql.db.root) == "table" and type(self.sql.db.root.schedules) == "table" then
-        parsed = self.sql.db.root.schedules
+    local raw = self.storage:get_string(STORAGE_KEY)
+    if raw == "" then
+        return
     end
 
-    if type(parsed) ~= "table" or next(parsed) == nil then
-        local raw = self.storage:get_string(STORAGE_KEY)
-        if raw ~= "" then
-            local ok_json, parsed_json = pcall(minetest.parse_json, raw)
-            if ok_json and type(parsed_json) == "table" then
-                parsed = parsed_json
-                migrated_from_storage = self.sql ~= nil
-            end
-        end
-    end
-
-    if type(parsed) ~= "table" then
+    local ok_json, parsed = pcall(minetest.parse_json, raw)
+    if not ok_json or type(parsed) ~= "table" then
+        minetest.log("warning", "[announcer] invalid schedule storage; resetting")
         self.schedules = {}
         self:save_schedules()
         return
@@ -188,9 +165,6 @@ function Core:load_schedules()
 
     self.schedules = sanitize_rows(parsed)
     self:save_schedules()
-    if migrated_from_storage then
-        self.storage:set_string(STORAGE_KEY, "")
-    end
 end
 
 function Core:broadcast(message)
@@ -462,60 +436,6 @@ function Core:register_globalstep()
         end
         self_ref.accumulator = 0
         self_ref:process_due(os.time())
-    end)
-end
-
-function Core:open_sql_backend()
-    local modlib = rawget(_G, "modlib")
-    local persistence = type(modlib) == "table" and modlib.persistence or nil
-    local sqlite_factory = type(persistence) == "table" and persistence.sqlite3 or nil
-    if type(sqlite_factory) ~= "function" then
-        return nil
-    end
-
-    local ok_mod, sqlite_mod = pcall(sqlite_factory)
-    if not ok_mod or type(sqlite_mod) ~= "table" or type(sqlite_mod.new) ~= "function" then
-        minetest.log("warning", "[announcer] sqlite backend unavailable: " .. tostring(sqlite_mod))
-        return nil
-    end
-
-    local db_path = minetest.get_worldpath() .. "/" .. SQL_FILENAME
-    local ok_db, db = pcall(sqlite_mod.new, db_path, {schedules = {}})
-    if not ok_db or type(db) ~= "table" then
-        minetest.log("warning", "[announcer] sqlite open failed: " .. tostring(db))
-        return nil
-    end
-
-    local ok_init, init_err = pcall(function()
-        db:init()
-        if type(db.root) ~= "table" then
-            db.root = {}
-        end
-        if type(db.root.schedules) ~= "table" then
-            db:set_root("schedules", {})
-        end
-    end)
-    if not ok_init then
-        pcall(function()
-            db:close()
-        end)
-        minetest.log("warning", "[announcer] sqlite init failed: " .. tostring(init_err))
-        return nil
-    end
-
-    minetest.log("action", "[announcer] using sqlite storage: " .. db_path)
-    return {db = db, path = db_path}
-end
-
-function Core:register_shutdown()
-    local sql = self.sql
-    if not sql or not sql.db or type(sql.db.close) ~= "function" then
-        return
-    end
-    minetest.register_on_shutdown(function()
-        pcall(function()
-            sql.db:close()
-        end)
     end)
 end
 
