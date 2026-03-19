@@ -2,7 +2,8 @@ local Core = {}
 Core.__index = Core
 
 local STORAGE_KEY = "schedules"
-local PREFIX = minetest.colorize("#ffd15c", "[Announcement] ")
+local CONFIG_PATH = "data/config.json"
+local DEFAULT_PREFIX = "&#ffd15c[Announcement] "
 
 local function trim(s)
     return tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -12,13 +13,36 @@ local function normalize_name(name)
     return trim(name):lower()
 end
 
+local function load_json_file(path)
+    local f = io.open(path, "rb")
+    if not f then
+        return nil
+    end
+
+    local raw = f:read("*a")
+    f:close()
+    if raw == nil or trim(raw) == "" then
+        return nil
+    end
+
+    local ok, parsed = pcall(minetest.parse_json, raw)
+    if not ok or type(parsed) ~= "table" then
+        return nil
+    end
+
+    return parsed
+end
+
 function Core.new(opts)
     local self = setmetatable({}, Core)
     self.modname = tostring(opts and opts.modname or minetest.get_current_modname() or "announcer")
+    self.modpath = tostring(opts and opts.modpath or minetest.get_modpath(self.modname) or "")
     self.storage = minetest.get_mod_storage()
     self.color_lib = rawget(_G, "color_lib")
     self.schedules = {}
     self.accumulator = 0
+    self.config = self:load_config()
+    self.prefix = self:build_prefix(self.config.prefix)
 
     self:load_schedules()
     self:register_api()
@@ -58,6 +82,34 @@ function Core:render_message(text)
     end
 
     return minetest.colorize("#ffffff", raw)
+end
+
+function Core:load_config()
+    local path = self.modpath .. "/" .. CONFIG_PATH
+    local parsed = load_json_file(path)
+    if type(parsed) ~= "table" then
+        return {prefix = DEFAULT_PREFIX}
+    end
+    local prefix = tostring(parsed.prefix or "")
+    if trim(prefix) == "" then
+        prefix = DEFAULT_PREFIX
+    end
+    return {prefix = prefix}
+end
+
+function Core:build_prefix(raw_prefix)
+    local raw = tostring(raw_prefix or DEFAULT_PREFIX)
+    if self.color_lib and type(self.color_lib.render_minecraft_hex_text) == "function" then
+        local rendered = self.color_lib.render_minecraft_hex_text(raw, {
+            trim = false,
+            allow_newlines = false,
+            append_white = false,
+        })
+        if type(rendered) == "string" and rendered ~= "" then
+            return rendered
+        end
+    end
+    return raw
 end
 
 function Core:save_schedules()
@@ -117,7 +169,7 @@ function Core:broadcast(message)
     if not rendered then
         return false, err
     end
-    minetest.chat_send_all(PREFIX .. rendered)
+    minetest.chat_send_all(self.prefix .. rendered)
     return true
 end
 

@@ -6,6 +6,7 @@ local Commands = dofile(modpath .. "/lib/commands.lua")
 
 local core = Core.new({
     modname = modname,
+    modpath = modpath,
 })
 
 Commands.install(core)

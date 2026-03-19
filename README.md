@@ -42,6 +42,16 @@ If `color_lib` is installed, announcement message text supports color tokens lik
 - `&#RRGGBB;`
 - `<&#RRGGBB>`
 
+## Config
+
+- `prefix`: prefix shown before every announcement message.
+
+```json
+{
+  "prefix": "&#ffd15c[Announcement] "
+}
+```
+
 ## API
 
 Global table: `announcer`
