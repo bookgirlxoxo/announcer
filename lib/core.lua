@@ -219,6 +219,10 @@ function Core:add_entry(name, msg, delay_seconds, repeat_enabled, actor)
     end
 
     local key = normalize_name(display_name)
+    if self.schedules[key] then
+        return false, "Announcement already exists: " .. key
+    end
+
     local now = os.time()
 
     self.schedules[key] = {
