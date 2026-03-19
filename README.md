@@ -48,7 +48,7 @@ If `color_lib` is installed, announcement message text supports color tokens lik
 
 ```json
 {
-  "prefix": "&#ffd15c[Announcement] "
+  "prefix": "[Announcement] "
 }
 ```
 
