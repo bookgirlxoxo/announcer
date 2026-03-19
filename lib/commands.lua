@@ -224,7 +224,7 @@ function Commands.install(core)
         if not ok then
             return false, err
         end
-        return true, "Announcement sent."
+        return true
     end
 
     minetest.register_chatcommand("announce", {

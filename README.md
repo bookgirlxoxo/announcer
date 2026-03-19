@@ -65,7 +65,9 @@ Global table: `announcer`
 - `announcer.get(name)`
 - `announcer.exists(name)`
 
-Schedules persist in mod storage.
+Schedules persist in a world SQLite file:
+
+- `<worldpath>/announcer.sqlite3`
 
 ## API Hook Example
 
