@@ -65,12 +65,12 @@ minetest.register_on_mods_loaded(function()
 
     -- Add or update a repeating server reminder every 15 minutes.
     if A.exists("smell_reminder") then
-        A.edit("smell_reminder", "&#87d65bYou smell!", 900, true, true, true, "my_mod")
+        A.edit("smell_reminder", "You smell, go shower!", 900, true, true, true, "my_mod")
     else
-        A.add("smell_reminder", "&#87d65bYou smell!", 900, true, "my_mod")
+        A.add("smell_reminder", "You smell, go shower!", 900, true, "my_mod")
     end
 
     -- Send a one-time startup message.
-    A.broadcast("&#ffd15cServer online. Have fun!")
+    A.broadcast("Server online, have fun!")
 end)
 ```
